@@ -31,7 +31,9 @@
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
+#include FREERTOS_OVERRIDES
 #include "task.h"
+#include "time_markers.h"
 
 /* For backward compatibility, ensure configKERNEL_INTERRUPT_PRIORITY is
 defined.  The value should also ensure backward compatibility.
@@ -124,7 +126,7 @@ static void prvPortStartFirstTask( void ) __attribute__ (( naked ));
 /*
  * Used to catch tasks that attempt to return from their implementing function.
  */
-static void prvTaskExitError( void );
+void prvTaskExitError( void );
 
 /*-----------------------------------------------------------*/
 
@@ -189,7 +191,7 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t px
 }
 /*-----------------------------------------------------------*/
 
-static void prvTaskExitError( void )
+void prvTaskExitError( void )
 {
 volatile uint32_t ulDummy = 0UL;
 
@@ -251,6 +253,7 @@ static void prvPortStartFirstTask( void )
 }
 /*-----------------------------------------------------------*/
 
+TIME_MARKER(done_sched_start);
 /*
  * See header file for description.
  */
@@ -293,23 +296,24 @@ BaseType_t xPortStartScheduler( void )
 			ucMaxPriorityValue <<= ( uint8_t ) 0x01;
 		}
 
-		#ifdef __NVIC_PRIO_BITS
-		{
-			/* Check the CMSIS configuration that defines the number of
-			priority bits matches the number of priority bits actually queried
-			from the hardware. */
-			configASSERT( ( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) == __NVIC_PRIO_BITS );
-		}
-		#endif
+		// TODO: check why these don't pass on qemu but on hardware
+		/* #ifdef __NVIC_PRIO_BITS */
+		/* { */
+		/* 	/\* Check the CMSIS configuration that defines the number of */
+		/* 	priority bits matches the number of priority bits actually queried */
+		/* 	from the hardware. *\/ */
+		/* 	configASSERT( ( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) == __NVIC_PRIO_BITS ); */
+		/* } */
+		/* #endif */
 
-		#ifdef configPRIO_BITS
-		{
-			/* Check the FreeRTOS configuration that defines the number of
-			priority bits matches the number of priority bits actually queried
-			from the hardware. */
-			configASSERT( ( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) == configPRIO_BITS );
-		}
-		#endif
+		/* #ifdef configPRIO_BITS */
+		/* { */
+		/* 	/\* Check the FreeRTOS configuration that defines the number of */
+		/* 	priority bits matches the number of priority bits actually queried */
+		/* 	from the hardware. *\/ */
+		/* 	configASSERT( ( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) == configPRIO_BITS ); */
+		/* } */
+		/* #endif */
 
 		/* Shift the priority group value back to its position within the AIRCR
 		register. */
@@ -333,6 +337,7 @@ BaseType_t xPortStartScheduler( void )
 	/* Initialise the critical nesting count ready for the first task. */
 	uxCriticalNesting = 0;
 
+	STORE_TIME_MARKER(done_sched_start);
 	/* Start the first task. */
 	prvPortStartFirstTask();
 

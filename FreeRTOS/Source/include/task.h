@@ -155,6 +155,93 @@ typedef enum
 	eNoTasksWaitingTimeout	/* No tasks are waiting for a timeout so it is safe to enter a sleep mode that can only be exited by an external interrupt. */
 } eSleepModeStatus;
 
+
+/*
+ * Task control block.  A task control block (TCB) is allocated for each task,
+ * and stores task state information, including a pointer to the task's context
+ * (the task's run time environment, including register values)
+ */
+typedef struct tskTaskControlBlock 			/* The old naming convention is used to prevent breaking kernel aware debuggers. */
+{
+	volatile StackType_t	*pxTopOfStack;	/*< Points to the location of the last item placed on the tasks stack.  THIS MUST BE THE FIRST MEMBER OF THE TCB STRUCT. */
+
+	#if ( portUSING_MPU_WRAPPERS == 1 )
+		xMPU_SETTINGS	xMPUSettings;		/*< The MPU settings are defined as part of the port layer.  THIS MUST BE THE SECOND MEMBER OF THE TCB STRUCT. */
+	#endif
+
+	ListItem_t			xStateListItem;	/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
+	ListItem_t			xEventListItem;		/*< Used to reference a task from an event list. */
+	UBaseType_t			uxPriority;			/*< The priority of the task.  0 is the lowest priority. */
+	StackType_t			*pxStack;			/*< Points to the start of the stack. */
+	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+
+	#if ( ( portSTACK_GROWTH > 0 ) || ( configRECORD_STACK_HIGH_ADDRESS == 1 ) )
+		StackType_t		*pxEndOfStack;		/*< Points to the highest valid address for the stack. */
+	#endif
+
+	#if ( portCRITICAL_NESTING_IN_TCB == 1 )
+		UBaseType_t		uxCriticalNesting;	/*< Holds the critical section nesting depth for ports that do not maintain their own count in the port layer. */
+	#endif
+
+	#if ( configUSE_TRACE_FACILITY == 1 )
+		UBaseType_t		uxTCBNumber;		/*< Stores a number that increments each time a TCB is created.  It allows debuggers to determine when a task has been deleted and then recreated. */
+		UBaseType_t		uxTaskNumber;		/*< Stores a number specifically for use by third party trace code. */
+	#endif
+
+	#if ( configUSE_MUTEXES == 1 )
+		UBaseType_t		uxBasePriority;		/*< The priority last assigned to the task - used by the priority inheritance mechanism. */
+		UBaseType_t		uxMutexesHeld;
+	#endif
+
+	#if ( configUSE_APPLICATION_TASK_TAG == 1 )
+		TaskHookFunction_t pxTaskTag;
+	#endif
+
+	#if( configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0 )
+		void			*pvThreadLocalStoragePointers[ configNUM_THREAD_LOCAL_STORAGE_POINTERS ];
+	#endif
+
+	#if( configGENERATE_RUN_TIME_STATS == 1 )
+		uint32_t		ulRunTimeCounter;	/*< Stores the amount of time the task has spent in the Running state. */
+	#endif
+
+	#if ( configUSE_NEWLIB_REENTRANT == 1 )
+		/* Allocate a Newlib reent structure that is specific to this task.
+		Note Newlib support has been included by popular demand, but is not
+		used by the FreeRTOS maintainers themselves.  FreeRTOS is not
+		responsible for resulting newlib operation.  User must be familiar with
+		newlib and must provide system-wide implementations of the necessary
+		stubs. Be warned that (at the time of writing) the current newlib design
+		implements a system-wide malloc() that must be provided with locks. */
+		struct	_reent xNewLib_reent;
+	#endif
+
+	#if( configUSE_TASK_NOTIFICATIONS == 1 )
+		volatile uint32_t ulNotifiedValue;
+		volatile uint8_t ucNotifyState;
+	#endif
+
+	/* See the comments in FreeRTOS.h with the definition of
+	tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE. */
+	#if( tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE != 0 ) /*lint !e731 !e9029 Macro has been consolidated for readability reasons. */
+		uint8_t	ucStaticallyAllocated; 		/*< Set to pdTRUE if the task is a statically allocated to ensure no attempt is made to free the memory. */
+	#endif
+
+	#if( INCLUDE_xTaskAbortDelay == 1 )
+		uint8_t ucDelayAborted;
+	#endif
+
+	#if( configUSE_POSIX_ERRNO == 1 )
+		int iTaskErrno;
+	#endif
+
+} tskTCB;
+
+/* The old tskTCB name is maintained above then typedefed to the new TCB_t name
+below to enable the use of older kernel aware debuggers. */
+typedef tskTCB TCB_t;
+
+
 /**
  * Defines the priority used by the idle task.  This must not be modified.
  *
@@ -442,7 +529,7 @@ is used in assert() statements. */
  * \defgroup xTaskCreateStatic xTaskCreateStatic
  * \ingroup Tasks
  */
-#if( configSUPPORT_STATIC_ALLOCATION == 1 )
+#if( configSUPPORT_STATIC_ALLOCATION == 0 || configINCLUDE_ALL_DECLS)
 	TaskHandle_t xTaskCreateStatic(	TaskFunction_t pxTaskCode,
 									const char * const pcName, /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 									const uint32_t ulStackDepth,
@@ -524,7 +611,7 @@ TaskHandle_t xHandle;
  * \defgroup xTaskCreateRestricted xTaskCreateRestricted
  * \ingroup Tasks
  */
-#if( portUSING_MPU_WRAPPERS == 1 )
+#if( portUSING_MPU_WRAPPERS == 1 || configINCLUDE_ALL_DECLS)
 	BaseType_t xTaskCreateRestricted( const TaskParameters_t * const pxTaskDefinition, TaskHandle_t *pxCreatedTask ) PRIVILEGED_FUNCTION;
 #endif
 
@@ -612,7 +699,7 @@ TaskHandle_t xHandle;
  * \defgroup xTaskCreateRestrictedStatic xTaskCreateRestrictedStatic
  * \ingroup Tasks
  */
-#if( ( portUSING_MPU_WRAPPERS == 1 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) )
+#if( ( portUSING_MPU_WRAPPERS == 1 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) || ( configINCLUDE_ALL_DECLS ))
 	BaseType_t xTaskCreateRestrictedStatic( const TaskParameters_t * const pxTaskDefinition, TaskHandle_t *pxCreatedTask ) PRIVILEGED_FUNCTION;
 #endif
 
@@ -1110,7 +1197,8 @@ void vTaskSuspend( TaskHandle_t xTaskToSuspend ) PRIVILEGED_FUNCTION;
  * \defgroup vTaskResume vTaskResume
  * \ingroup TaskCtrl
  */
-void vTaskResume( TaskHandle_t xTaskToResume ) PRIVILEGED_FUNCTION;
+void vTaskResume(TaskHandle_t xTaskToResume) PRIVILEGED_FUNCTION;
+void __ara_vTaskActivate(TaskHandle_t xTaskToResume) PRIVILEGED_FUNCTION;
 
 /**
  * task. h
@@ -1469,8 +1557,8 @@ so the following two prototypes will cause a compilation error.  This can be
 fixed by simply guarding against the inclusion of these two prototypes unless
 they are explicitly required by the configUSE_APPLICATION_TASK_TAG configuration
 constant. */
-#ifdef configUSE_APPLICATION_TASK_TAG
-	#if configUSE_APPLICATION_TASK_TAG == 1
+#ifdef configUSE_APPLICATION_TASK_TAG || configINCLUDE_ALL_DECLS
+	#if configUSE_APPLICATION_TASK_TAG == 1 || configINCLUDE_ALL_DECLS
 		/**
 		 * task.h
 		 * <pre>void vTaskSetApplicationTaskTag( TaskHandle_t xTask, TaskHookFunction_t pxHookFunction );</pre>
@@ -1502,7 +1590,7 @@ constant. */
 	#endif /* configUSE_APPLICATION_TASK_TAG ==1 */
 #endif /* ifdef configUSE_APPLICATION_TASK_TAG */
 
-#if( configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0 )
+#if (configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0) || configINCLUDE_ALL_DECLS
 
 	/* Each task contains an array of pointers that is dimensioned by the
 	configNUM_THREAD_LOCAL_STORAGE_POINTERS setting in FreeRTOSConfig.h.  The
@@ -2411,8 +2499,84 @@ TaskHandle_t pvTaskIncrementMutexHeldCount( void ) PRIVILEGED_FUNCTION;
  */
 void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNCTION;
 
-
 #ifdef __cplusplus
+}
+#endif
+
+#if configINCLUDE_ALL_DECLS
+__attribute((weak)) int __decl_all_task() {
+  int ret = 0;
+  ret |= ((int) eTaskConfirmSleepModeStatus & 0x04) == NULL;
+  ret |= ((int) eTaskGetState & 0x04) == NULL;
+  ret |= ((int) pcTaskGetName & 0x04) == NULL;
+  ret |= ((int) pvTaskGetThreadLocalStoragePointer & 0x04) == NULL;
+  ret |= ((int) pvTaskIncrementMutexHeldCount & 0x04) == NULL;
+  ret |= ((int) ulTaskNotifyTake & 0x04) == NULL;
+  ret |= ((int) uxTaskGetNumberOfTasks & 0x04) == NULL;
+  ret |= ((int) uxTaskGetStackHighWaterMark & 0x04) == NULL;
+  ret |= ((int) uxTaskGetStackHighWaterMark2 & 0x04) == NULL;
+  ret |= ((int) uxTaskGetSystemState & 0x04) == NULL;
+  ret |= ((int) uxTaskGetTaskNumber & 0x04) == NULL;
+  ret |= ((int) uxTaskPriorityGet & 0x04) == NULL;
+  ret |= ((int) uxTaskPriorityGetFromISR & 0x04) == NULL;
+  ret |= ((int) uxTaskResetEventItemValue & 0x04) == NULL;
+  ret |= ((int) vTaskAllocateMPURegions & 0x04) == NULL;
+  ret |= ((int) vTaskDelay & 0x04) == NULL;
+  ret |= ((int) vTaskDelayUntil & 0x04) == NULL;
+  ret |= ((int) vTaskDelete & 0x04) == NULL;
+  ret |= ((int) vTaskEndScheduler & 0x04) == NULL;
+  ret |= ((int) vTaskGetInfo & 0x04) == NULL;
+  ret |= ((int) vTaskGetRunTimeStats & 0x04) == NULL;
+  ret |= ((int) vTaskInternalSetTimeOutState & 0x04) == NULL;
+  ret |= ((int) vTaskList & 0x04) == NULL;
+  ret |= ((int) vTaskMissedYield & 0x04) == NULL;
+  ret |= ((int) vTaskNotifyGiveFromISR & 0x04) == NULL;
+  ret |= ((int) vTaskPlaceOnEventList & 0x04) == NULL;
+  ret |= ((int) vTaskPlaceOnEventListRestricted & 0x04) == NULL;
+  ret |= ((int) vTaskPlaceOnUnorderedEventList & 0x04) == NULL;
+  ret |= ((int) vTaskPriorityDisinheritAfterTimeout & 0x04) == NULL;
+  ret |= ((int) vTaskPrioritySet & 0x04) == NULL;
+  ret |= ((int) vTaskRemoveFromUnorderedEventList & 0x04) == NULL;
+  ret |= ((int) vTaskResume & 0x04) == NULL;
+  ret |= ((int) __ara_vTaskActivate & 0x04) == NULL;
+  ret |= ((int) vTaskSetApplicationTaskTag & 0x04) == NULL;
+  ret |= ((int) vTaskSetTaskNumber & 0x04) == NULL;
+  ret |= ((int) vTaskSetThreadLocalStoragePointer & 0x04) == NULL;
+  ret |= ((int) vTaskSetTimeOutState & 0x04) == NULL;
+  ret |= ((int) vTaskStartScheduler & 0x04) == NULL;
+  ret |= ((int) vTaskStepTick & 0x04) == NULL;
+  ret |= ((int) vTaskSuspend & 0x04) == NULL;
+  ret |= ((int) vTaskSuspendAll & 0x04) == NULL;
+  ret |= ((int) vTaskSwitchContext & 0x04) == NULL;
+  ret |= ((int) xTaskAbortDelay & 0x04) == NULL;
+  ret |= ((int) xTaskCallApplicationTaskHook & 0x04) == NULL;
+  ret |= ((int) xTaskCheckForTimeOut & 0x04) == NULL;
+  ret |= ((int) xTaskCreateRestricted & 0x04) == NULL;
+  ret |= ((int) xTaskCreateRestrictedStatic & 0x04) == NULL;
+  ret |= ((int) xTaskCreateStatic & 0x04) == NULL;
+  ret |= ((int) xTaskGenericNotify & 0x04) == NULL;
+  ret |= ((int) xTaskGenericNotifyFromISR & 0x04) == NULL;
+  ret |= ((int) xTaskGetApplicationTaskTag & 0x04) == NULL;
+  ret |= ((int) xTaskGetApplicationTaskTagFromISR & 0x04) == NULL;
+  ret |= ((int) xTaskGetCurrentTaskHandle & 0x04) == NULL;
+  ret |= ((int) xTaskGetHandle & 0x04) == NULL;
+  ret |= ((int) xTaskGetIdleRunTimeCounter & 0x04) == NULL;
+  ret |= ((int) xTaskGetIdleTaskHandle & 0x04) == NULL;
+  ret |= ((int) xTaskGetSchedulerState & 0x04) == NULL;
+  ret |= ((int) xTaskGetTickCount & 0x04) == NULL;
+  ret |= ((int) xTaskGetTickCountFromISR & 0x04) == NULL;
+  ret |= ((int) xTaskIncrementTick & 0x04) == NULL;
+  ret |= ((int) xTaskNotifyStateClear & 0x04) == NULL;
+  ret |= ((int) xTaskNotifyWait & 0x04) == NULL;
+  ret |= ((int) xTaskPriorityDisinherit & 0x04) == NULL;
+  ret |= ((int) xTaskPriorityInherit & 0x04) == NULL;
+  ret |= ((int) xTaskRemoveFromEventList & 0x04) == NULL;
+  ret |= ((int) xTaskResumeAll & 0x04) == NULL;
+  ret |= ((int) xTaskResumeFromISR & 0x04) == NULL;
+#if (configSUPPORT_DYNAMIC_ALLOCATION == 1)
+  ret |= ((int) xTaskCreate & 0x04) == NULL;
+#endif
+  return ret;
 }
 #endif
 #endif /* INC_TASK_H */

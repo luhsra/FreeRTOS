@@ -36,6 +36,7 @@ task.h is included from an application file. */
 
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
+#include FREERTOS_OVERRIDES
 #include "task.h"
 #include "timers.h"
 #include "stack_macros.h"
@@ -244,105 +245,29 @@ to its original value when it is released. */
 	#define taskEVENT_LIST_ITEM_VALUE_IN_USE	0x80000000UL
 #endif
 
-/*
- * Task control block.  A task control block (TCB) is allocated for each task,
- * and stores task state information, including a pointer to the task's context
- * (the task's run time environment, including register values)
- */
-typedef struct tskTaskControlBlock 			/* The old naming convention is used to prevent breaking kernel aware debuggers. */
-{
-	volatile StackType_t	*pxTopOfStack;	/*< Points to the location of the last item placed on the tasks stack.  THIS MUST BE THE FIRST MEMBER OF THE TCB STRUCT. */
-
-	#if ( portUSING_MPU_WRAPPERS == 1 )
-		xMPU_SETTINGS	xMPUSettings;		/*< The MPU settings are defined as part of the port layer.  THIS MUST BE THE SECOND MEMBER OF THE TCB STRUCT. */
-	#endif
-
-	ListItem_t			xStateListItem;	/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
-	ListItem_t			xEventListItem;		/*< Used to reference a task from an event list. */
-	UBaseType_t			uxPriority;			/*< The priority of the task.  0 is the lowest priority. */
-	StackType_t			*pxStack;			/*< Points to the start of the stack. */
-	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
-
-	#if ( ( portSTACK_GROWTH > 0 ) || ( configRECORD_STACK_HIGH_ADDRESS == 1 ) )
-		StackType_t		*pxEndOfStack;		/*< Points to the highest valid address for the stack. */
-	#endif
-
-	#if ( portCRITICAL_NESTING_IN_TCB == 1 )
-		UBaseType_t		uxCriticalNesting;	/*< Holds the critical section nesting depth for ports that do not maintain their own count in the port layer. */
-	#endif
-
-	#if ( configUSE_TRACE_FACILITY == 1 )
-		UBaseType_t		uxTCBNumber;		/*< Stores a number that increments each time a TCB is created.  It allows debuggers to determine when a task has been deleted and then recreated. */
-		UBaseType_t		uxTaskNumber;		/*< Stores a number specifically for use by third party trace code. */
-	#endif
-
-	#if ( configUSE_MUTEXES == 1 )
-		UBaseType_t		uxBasePriority;		/*< The priority last assigned to the task - used by the priority inheritance mechanism. */
-		UBaseType_t		uxMutexesHeld;
-	#endif
-
-	#if ( configUSE_APPLICATION_TASK_TAG == 1 )
-		TaskHookFunction_t pxTaskTag;
-	#endif
-
-	#if( configNUM_THREAD_LOCAL_STORAGE_POINTERS > 0 )
-		void			*pvThreadLocalStoragePointers[ configNUM_THREAD_LOCAL_STORAGE_POINTERS ];
-	#endif
-
-	#if( configGENERATE_RUN_TIME_STATS == 1 )
-		uint32_t		ulRunTimeCounter;	/*< Stores the amount of time the task has spent in the Running state. */
-	#endif
-
-	#if ( configUSE_NEWLIB_REENTRANT == 1 )
-		/* Allocate a Newlib reent structure that is specific to this task.
-		Note Newlib support has been included by popular demand, but is not
-		used by the FreeRTOS maintainers themselves.  FreeRTOS is not
-		responsible for resulting newlib operation.  User must be familiar with
-		newlib and must provide system-wide implementations of the necessary
-		stubs. Be warned that (at the time of writing) the current newlib design
-		implements a system-wide malloc() that must be provided with locks. */
-		struct	_reent xNewLib_reent;
-	#endif
-
-	#if( configUSE_TASK_NOTIFICATIONS == 1 )
-		volatile uint32_t ulNotifiedValue;
-		volatile uint8_t ucNotifyState;
-	#endif
-
-	/* See the comments in FreeRTOS.h with the definition of
-	tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE. */
-	#if( tskSTATIC_AND_DYNAMIC_ALLOCATION_POSSIBLE != 0 ) /*lint !e731 !e9029 Macro has been consolidated for readability reasons. */
-		uint8_t	ucStaticallyAllocated; 		/*< Set to pdTRUE if the task is a statically allocated to ensure no attempt is made to free the memory. */
-	#endif
-
-	#if( INCLUDE_xTaskAbortDelay == 1 )
-		uint8_t ucDelayAborted;
-	#endif
-
-	#if( configUSE_POSIX_ERRNO == 1 )
-		int iTaskErrno;
-	#endif
-
-} tskTCB;
-
-/* The old tskTCB name is maintained above then typedefed to the new TCB_t name
-below to enable the use of older kernel aware debuggers. */
-typedef tskTCB TCB_t;
-
 /*lint -save -e956 A manual analysis and inspection has been used to determine
 which static variables must be declared volatile. */
+#ifdef ARA_INITIALIZED
+extern PRIVILEGED_DATA TCB_t * volatile pxCurrentTCB;
+#else
 PRIVILEGED_DATA TCB_t * volatile pxCurrentTCB = NULL;
+#endif
 
 /* Lists for ready and blocked tasks. --------------------
 xDelayedTaskList1 and xDelayedTaskList2 could be move to function scople but
 doing so breaks some kernel aware debuggers and debuggers that rely on removing
 the static qualifier. */
-PRIVILEGED_DATA static List_t pxReadyTasksLists[ configMAX_PRIORITIES ];/*< Prioritised ready tasks. */
-PRIVILEGED_DATA static List_t xDelayedTaskList1;						/*< Delayed tasks. */
-PRIVILEGED_DATA static List_t xDelayedTaskList2;						/*< Delayed tasks (two lists are used - one for delays that have overflowed the current tick count. */
-PRIVILEGED_DATA static List_t * volatile pxDelayedTaskList;				/*< Points to the delayed task list currently being used. */
-PRIVILEGED_DATA static List_t * volatile pxOverflowDelayedTaskList;		/*< Points to the delayed task list currently being used to hold tasks that have overflowed the current tick count. */
-PRIVILEGED_DATA static List_t xPendingReadyList;						/*< Tasks that have been readied while the scheduler was suspended.  They will be moved to the ready list when the scheduler is resumed. */
+#ifdef ARA_INITIALIZED
+#define ARA_VISIBILITY extern
+#else
+#define ARA_VISIBILITY static
+#endif
+PRIVILEGED_DATA ARA_VISIBILITY List_t pxReadyTasksLists[ configMAX_PRIORITIES ];/*< Prioritised ready tasks. */
+PRIVILEGED_DATA ARA_VISIBILITY List_t xDelayedTaskList1;						/*< Delayed tasks. */
+PRIVILEGED_DATA ARA_VISIBILITY List_t xDelayedTaskList2;						/*< Delayed tasks (two lists are used - one for delays that have overflowed the current tick count. */
+PRIVILEGED_DATA ARA_VISIBILITY List_t * volatile pxDelayedTaskList;				/*< Points to the delayed task list currently being used. */
+PRIVILEGED_DATA ARA_VISIBILITY List_t * volatile pxOverflowDelayedTaskList;		/*< Points to the delayed task list currently being used to hold tasks that have overflowed the current tick count. */
+PRIVILEGED_DATA ARA_VISIBILITY List_t xPendingReadyList;						/*< Tasks that have been readied while the scheduler was suspended.  They will be moved to the ready list when the scheduler is resumed. */
 
 #if( INCLUDE_vTaskDelete == 1 )
 
@@ -364,6 +289,18 @@ the errno of the currently running task. */
 #endif
 
 /* Other file private variables. --------------------------------*/
+#ifdef ARA_INITIALIZED
+PRIVILEGED_DATA ARA_VISIBILITY volatile UBaseType_t uxCurrentNumberOfTasks;
+PRIVILEGED_DATA static volatile TickType_t xTickCount 				= ( TickType_t ) configINITIAL_TICK_COUNT;
+PRIVILEGED_DATA ARA_VISIBILITY volatile UBaseType_t uxTopReadyPriority;
+PRIVILEGED_DATA static volatile BaseType_t xSchedulerRunning 		= pdFALSE;
+PRIVILEGED_DATA static volatile UBaseType_t uxPendedTicks 			= ( UBaseType_t ) 0U;
+PRIVILEGED_DATA static volatile BaseType_t xYieldPending 			= pdFALSE;
+PRIVILEGED_DATA static volatile BaseType_t xNumOfOverflows 			= ( BaseType_t ) 0;
+PRIVILEGED_DATA ARA_VISIBILITY UBaseType_t uxTaskNumber;
+PRIVILEGED_DATA static volatile TickType_t xNextTaskUnblockTime		= ( TickType_t ) 0U; /* Initialised to portMAX_DELAY before the scheduler starts. */
+PRIVILEGED_DATA ARA_VISIBILITY TaskHandle_t xIdleTaskHandle;
+#else
 PRIVILEGED_DATA static volatile UBaseType_t uxCurrentNumberOfTasks 	= ( UBaseType_t ) 0U;
 PRIVILEGED_DATA static volatile TickType_t xTickCount 				= ( TickType_t ) configINITIAL_TICK_COUNT;
 PRIVILEGED_DATA static volatile UBaseType_t uxTopReadyPriority 		= tskIDLE_PRIORITY;
@@ -374,6 +311,7 @@ PRIVILEGED_DATA static volatile BaseType_t xNumOfOverflows 			= ( BaseType_t ) 0
 PRIVILEGED_DATA static UBaseType_t uxTaskNumber 					= ( UBaseType_t ) 0U;
 PRIVILEGED_DATA static volatile TickType_t xNextTaskUnblockTime		= ( TickType_t ) 0U; /* Initialised to portMAX_DELAY before the scheduler starts. */
 PRIVILEGED_DATA static TaskHandle_t xIdleTaskHandle					= NULL;			/*< Holds the handle of the idle task.  The idle task is created automatically when the scheduler is started. */
+#endif
 
 /* Context switches are held pending while the scheduler is suspended.  Also,
 interrupts must not manipulate the xStateListItem of a TCB, or any of the
@@ -412,9 +350,15 @@ PRIVILEGED_DATA static volatile UBaseType_t uxSchedulerSuspended	= ( UBaseType_t
 #endif
 
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
+#ifndef ARA_INITIALIZED
 
 	extern void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize ); /*lint !e526 Symbol not defined as it is an application callback. */
+__attribute__((weak)) void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize ) {
+  *ppxIdleTaskTCBBuffer = (StaticTask_t*) pvPortMalloc(sizeof(StaticTask_t));
+  *ppxIdleTaskStackBuffer = ( StackType_t * ) pvPortMalloc( ( ( ( size_t ) configMINIMAL_STACK_SIZE ) * sizeof( StackType_t ) ) );
+}
 
+#endif
 #endif
 
 /* File private functions. --------------------------------*/
@@ -447,7 +391,7 @@ static void prvInitialiseTaskLists( void ) PRIVILEGED_FUNCTION;
  * void prvIdleTask( void *pvParameters );
  *
  */
-static portTASK_FUNCTION_PROTO( prvIdleTask, pvParameters );
+ARA_VISIBILITY portTASK_FUNCTION_PROTO( prvIdleTask, pvParameters );
 
 /*
  * Utility to free all memory allocated by the scheduler to hold a TCB,
@@ -1082,6 +1026,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			the suspended state - make this the current task. */
 			pxCurrentTCB = pxNewTCB;
 
+#ifndef ARA_INITIALIZED
 			if( uxCurrentNumberOfTasks == ( UBaseType_t ) 1 )
 			{
 				/* This is the first task to be created so do the preliminary
@@ -1093,6 +1038,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 			{
 				mtCOVERAGE_TEST_MARKER();
 			}
+#endif
 		}
 		else
 		{
@@ -1892,6 +1838,25 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 
 /*-----------------------------------------------------------*/
 
+#ifdef ARA_INITIALIZED
+void __ara_vTaskActivate(TaskHandle_t xTaskToResume)
+{
+	TCB_t * const pxTCB = xTaskToResume;
+	configASSERT( xTaskToResume );
+	taskENTER_CRITICAL();
+	uxCurrentNumberOfTasks++;
+	prvAddTaskToReadyList( pxTCB );
+	/* A higher priority task may have just been resumed. */
+	if (pxTCB->uxPriority >= pxCurrentTCB->uxPriority) {
+		/* This yield may not cause the task just resumed to run,
+		   but will leave the lists in the correct state for the
+		   next yield. */
+		taskYIELD_IF_USING_PREEMPTION();
+	}
+	taskEXIT_CRITICAL();
+}
+#endif
+
 #if ( ( INCLUDE_xTaskResumeFromISR == 1 ) && ( INCLUDE_vTaskSuspend == 1 ) )
 
 	BaseType_t xTaskResumeFromISR( TaskHandle_t xTaskToResume )
@@ -1966,8 +1931,9 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 
 void vTaskStartScheduler( void )
 {
-BaseType_t xReturn;
+BaseType_t xReturn = pdPASS;
 
+#ifndef ARA_INITIALIZED
 	/* Add the idle task at the lowest priority. */
 	#if( configSUPPORT_STATIC_ALLOCATION == 1 )
 	{
@@ -2006,6 +1972,7 @@ BaseType_t xReturn;
 								&xIdleTaskHandle ); /*lint !e961 MISRA exception, justified as it is not a redundant explicit cast to all supported compilers. */
 	}
 	#endif /* configSUPPORT_STATIC_ALLOCATION */
+#endif //ARA_INITIALIZED
 
 	#if ( configUSE_TIMERS == 1 )
 	{
@@ -3331,10 +3298,13 @@ void vTaskMissedYield( void )
  * void prvIdleTask( void *pvParameters );
  *
  */
-static portTASK_FUNCTION( prvIdleTask, pvParameters )
+extern void print_startup_statistics(void);
+
+ARA_VISIBILITY portTASK_FUNCTION( prvIdleTask, pvParameters )
 {
 	/* Stop warnings. */
 	( void ) pvParameters;
+	print_startup_statistics();
 
 	/** THIS IS THE RTOS IDLE TASK - WHICH IS CREATED AUTOMATICALLY WHEN THE
 	SCHEDULER IS STARTED. **/
@@ -3543,6 +3513,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 #endif /* portUSING_MPU_WRAPPERS */
 /*-----------------------------------------------------------*/
 
+#ifndef ARA_INITIALIZED
 static void prvInitialiseTaskLists( void )
 {
 UBaseType_t uxPriority;
@@ -3573,6 +3544,7 @@ UBaseType_t uxPriority;
 	pxDelayedTaskList = &xDelayedTaskList1;
 	pxOverflowDelayedTaskList = &xDelayedTaskList2;
 }
+#endif
 /*-----------------------------------------------------------*/
 
 static void prvCheckTasksWaitingTermination( void )
