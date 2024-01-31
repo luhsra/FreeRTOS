@@ -28,3 +28,5 @@ if arm_enabled
   arm_sources = files(prefix / 'port.c')
   arm_header_dirs = [prefix]
 endif
+
+default_config = files('defaultconfig' / 'arm' / 'FreeRTOSConfig.h')
