@@ -29,4 +29,4 @@ if arm_enabled
   arm_header_dirs = [prefix]
 endif
 
-default_config = files('defaultconfig' / 'arm' / 'FreeRTOSConfig.h')
+default_config = files('defaultconfig' / 'arm' / 'FreeRTOSConfig.h')[0]
