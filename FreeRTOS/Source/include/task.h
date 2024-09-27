@@ -2506,63 +2506,123 @@ void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNC
 #if configINCLUDE_ALL_DECLS
 __attribute((weak)) int __decl_all_task() {
   int ret = 0;
+#if( configUSE_TICKLESS_IDLE != 0 )
   ret |= ((int) eTaskConfirmSleepModeStatus & 0x04) == NULL;
+#endif
+#if( ( INCLUDE_eTaskGetState == 1 ) || ( configUSE_TRACE_FACILITY == 1 ) || ( INCLUDE_xTaskAbortDelay == 1 ) )
   ret |= ((int) eTaskGetState & 0x04) == NULL;
+#endif
   ret |= ((int) pcTaskGetName & 0x04) == NULL;
+#if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS != 0 )
   ret |= ((int) pvTaskGetThreadLocalStoragePointer & 0x04) == NULL;
+#endif
   ret |= ((int) pvTaskIncrementMutexHeldCount & 0x04) == NULL;
   ret |= ((int) ulTaskNotifyTake & 0x04) == NULL;
   ret |= ((int) uxTaskGetNumberOfTasks & 0x04) == NULL;
+#if ( INCLUDE_uxTaskGetStackHighWaterMark == 1 )
   ret |= ((int) uxTaskGetStackHighWaterMark & 0x04) == NULL;
+#endif
+#if ( INCLUDE_uxTaskGetStackHighWaterMark2 == 1 )
   ret |= ((int) uxTaskGetStackHighWaterMark2 & 0x04) == NULL;
+#endif
+#if ( configUSE_TRACE_FACILITY == 1 )
   ret |= ((int) uxTaskGetSystemState & 0x04) == NULL;
   ret |= ((int) uxTaskGetTaskNumber & 0x04) == NULL;
+#endif
+#if ( INCLUDE_uxTaskPriorityGet == 1 )
   ret |= ((int) uxTaskPriorityGet & 0x04) == NULL;
   ret |= ((int) uxTaskPriorityGetFromISR & 0x04) == NULL;
+#endif
   ret |= ((int) uxTaskResetEventItemValue & 0x04) == NULL;
+#if ( portUSING_MPU_WRAPPERS == 1 )
   ret |= ((int) vTaskAllocateMPURegions & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskDelay & 0x04) == NULL;
   ret |= ((int) vTaskDelayUntil & 0x04) == NULL;
+#if ( INCLUDE_vTaskDelete == 1 )
   ret |= ((int) vTaskDelete & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskEndScheduler & 0x04) == NULL;
+#if( configUSE_TRACE_FACILITY == 1 )
   ret |= ((int) vTaskGetInfo & 0x04) == NULL;
+#endif
+#if ( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
   ret |= ((int) vTaskGetRunTimeStats & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskInternalSetTimeOutState & 0x04) == NULL;
+#if ( ( configUSE_TRACE_FACILITY == 1 ) && ( configUSE_STATS_FORMATTING_FUNCTIONS > 0 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
   ret |= ((int) vTaskList & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskMissedYield & 0x04) == NULL;
   ret |= ((int) vTaskNotifyGiveFromISR & 0x04) == NULL;
   ret |= ((int) vTaskPlaceOnEventList & 0x04) == NULL;
+#if( configUSE_TIMERS == 1 )
   ret |= ((int) vTaskPlaceOnEventListRestricted & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskPlaceOnUnorderedEventList & 0x04) == NULL;
   ret |= ((int) vTaskPriorityDisinheritAfterTimeout & 0x04) == NULL;
+#if ( INCLUDE_vTaskPrioritySet == 1 )
   ret |= ((int) vTaskPrioritySet & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskRemoveFromUnorderedEventList & 0x04) == NULL;
+#if ( INCLUDE_vTaskSuspend == 1 )
   ret |= ((int) vTaskResume & 0x04) == NULL;
+#endif
   ret |= ((int) __ara_vTaskActivate & 0x04) == NULL;
+#if ( configUSE_APPLICATION_TASK_TAG == 1 )
   ret |= ((int) vTaskSetApplicationTaskTag & 0x04) == NULL;
+#endif
+#if ( configUSE_TRACE_FACILITY == 1 )
   ret |= ((int) vTaskSetTaskNumber & 0x04) == NULL;
+#endif
+#if ( configNUM_THREAD_LOCAL_STORAGE_POINTERS != 0 )
   ret |= ((int) vTaskSetThreadLocalStoragePointer & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskSetTimeOutState & 0x04) == NULL;
   ret |= ((int) vTaskStartScheduler & 0x04) == NULL;
+#if ( configUSE_TICKLESS_IDLE != 0 )
   ret |= ((int) vTaskStepTick & 0x04) == NULL;
+#endif
+#if ( INCLUDE_vTaskSuspend == 1 )
   ret |= ((int) vTaskSuspend & 0x04) == NULL;
+#endif
   ret |= ((int) vTaskSuspendAll & 0x04) == NULL;
   ret |= ((int) vTaskSwitchContext & 0x04) == NULL;
+#if ( INCLUDE_xTaskAbortDelay == 1 )
   ret |= ((int) xTaskAbortDelay & 0x04) == NULL;
+#endif
+#if ( configUSE_APPLICATION_TASK_TAG == 1 )
   ret |= ((int) xTaskCallApplicationTaskHook & 0x04) == NULL;
+#endif
   ret |= ((int) xTaskCheckForTimeOut & 0x04) == NULL;
+#if( ( portUSING_MPU_WRAPPERS == 1 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
   ret |= ((int) xTaskCreateRestricted & 0x04) == NULL;
+#endif
+#if( ( portUSING_MPU_WRAPPERS == 1 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) )
   ret |= ((int) xTaskCreateRestrictedStatic & 0x04) == NULL;
+#endif
+#if( configSUPPORT_STATIC_ALLOCATION == 1 )
   ret |= ((int) xTaskCreateStatic & 0x04) == NULL;
+#endif
   ret |= ((int) xTaskGenericNotify & 0x04) == NULL;
   ret |= ((int) xTaskGenericNotifyFromISR & 0x04) == NULL;
+#if ( configUSE_APPLICATION_TASK_TAG == 1 )
   ret |= ((int) xTaskGetApplicationTaskTag & 0x04) == NULL;
   ret |= ((int) xTaskGetApplicationTaskTagFromISR & 0x04) == NULL;
+#endif
   ret |= ((int) xTaskGetCurrentTaskHandle & 0x04) == NULL;
+#if ( INCLUDE_xTaskGetHandle == 1 )
   ret |= ((int) xTaskGetHandle & 0x04) == NULL;
+#endif
+#if( ( configGENERATE_RUN_TIME_STATS == 1 ) && ( INCLUDE_xTaskGetIdleTaskHandle == 1 ) )
   ret |= ((int) xTaskGetIdleRunTimeCounter & 0x04) == NULL;
+#endif
+#if ( INCLUDE_xTaskGetIdleTaskHandle == 1 )
   ret |= ((int) xTaskGetIdleTaskHandle & 0x04) == NULL;
+#endif
+#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
   ret |= ((int) xTaskGetSchedulerState & 0x04) == NULL;
+#endif
   ret |= ((int) xTaskGetTickCount & 0x04) == NULL;
   ret |= ((int) xTaskGetTickCountFromISR & 0x04) == NULL;
   ret |= ((int) xTaskIncrementTick & 0x04) == NULL;
@@ -2572,7 +2632,9 @@ __attribute((weak)) int __decl_all_task() {
   ret |= ((int) xTaskPriorityInherit & 0x04) == NULL;
   ret |= ((int) xTaskRemoveFromEventList & 0x04) == NULL;
   ret |= ((int) xTaskResumeAll & 0x04) == NULL;
+#if ( ( INCLUDE_xTaskResumeFromISR == 1 ) && ( INCLUDE_vTaskSuspend == 1 ) )
   ret |= ((int) xTaskResumeFromISR & 0x04) == NULL;
+#endif
 #if (configSUPPORT_DYNAMIC_ALLOCATION == 1)
   ret |= ((int) xTaskCreate & 0x04) == NULL;
 #endif

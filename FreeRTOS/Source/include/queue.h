@@ -1724,31 +1724,53 @@ uint8_t ucQueueGetQueueType( QueueHandle_t xQueue ) PRIVILEGED_FUNCTION;
 #if configINCLUDE_ALL_DECLS
 __attribute((weak)) int __decl_all_queue() {
   int ret = 0;
+#if ( configUSE_TRACE_FACILITY == 1 )
   ret |= ((int) ucQueueGetQueueType & 0x04) == NULL;
   ret |= ((int) uxQueueGetQueueNumber & 0x04) == NULL;
+#endif
   ret |= ((int) uxQueueMessagesWaiting & 0x04) == NULL;
   ret |= ((int) uxQueueMessagesWaitingFromISR & 0x04) == NULL;
   ret |= ((int) uxQueueSpacesAvailable & 0x04) == NULL;
   ret |= ((int) vQueueDelete & 0x04) == NULL;
+#if ( configUSE_TRACE_FACILITY == 1 )
   ret |= ((int) vQueueSetQueueNumber & 0x04) == NULL;
+#endif
+#if ( configUSE_TIMERS == 1 )
   ret |= ((int) vQueueWaitForMessageRestricted & 0x04) == NULL;
+#endif
+#if ( configUSE_QUEUE_SETS == 1 )
   ret |= ((int) xQueueAddToSet & 0x04) == NULL;
+#endif
+#if( ( configUSE_COUNTING_SEMAPHORES == 1 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
   ret |= ((int) xQueueCreateCountingSemaphore & 0x04) == NULL;
+#endif
+#if( ( configUSE_COUNTING_SEMAPHORES == 1 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) )
   ret |= ((int) xQueueCreateCountingSemaphoreStatic & 0x04) == NULL;
+#endif
   ret |= ((int) xQueueCreateMutex & 0x04) == NULL;
+#if( ( configUSE_MUTEXES == 1 ) && ( configSUPPORT_STATIC_ALLOCATION == 1 ) )
   ret |= ((int) xQueueCreateMutexStatic & 0x04) == NULL;
+#endif
+#if( ( configUSE_QUEUE_SETS == 1 ) && ( configSUPPORT_DYNAMIC_ALLOCATION == 1 ) )
   ret |= ((int) xQueueCreateSet & 0x04) == NULL;
+#endif
+#if ( configUSE_CO_ROUTINES == 1 )
   ret |= ((int) xQueueCRReceive & 0x04) == NULL;
   ret |= ((int) xQueueCRReceiveFromISR & 0x04) == NULL;
   ret |= ((int) xQueueCRSend & 0x04) == NULL;
   ret |= ((int) xQueueCRSendFromISR & 0x04) == NULL;
+#endif
   ret |= ((int) xQueueGenericCreate & 0x04) == NULL;
+#if( configSUPPORT_STATIC_ALLOCATION == 1 )
   ret |= ((int) xQueueGenericCreateStatic & 0x04) == NULL;
+#endif
   ret |= ((int) xQueueGenericReset & 0x04) == NULL;
   ret |= ((int) xQueueGenericSend & 0x04) == NULL;
   ret |= ((int) xQueueGenericSendFromISR & 0x04) == NULL;
+#if ( ( configUSE_MUTEXES == 1 ) && ( INCLUDE_xSemaphoreGetMutexHolder == 1 ) )
   ret |= ((int) xQueueGetMutexHolder & 0x04) == NULL;
   ret |= ((int) xQueueGetMutexHolderFromISR & 0x04) == NULL;
+#endif
   ret |= ((int) xQueueGiveFromISR & 0x04) == NULL;
   ret |= ((int) xQueueGiveMutexRecursive & 0x04) == NULL;
   ret |= ((int) xQueueIsQueueEmptyFromISR & 0x04) == NULL;
@@ -1757,9 +1779,11 @@ __attribute((weak)) int __decl_all_queue() {
   ret |= ((int) xQueuePeekFromISR & 0x04) == NULL;
   ret |= ((int) xQueueReceive & 0x04) == NULL;
   ret |= ((int) xQueueReceiveFromISR & 0x04) == NULL;
+#if ( configUSE_QUEUE_SETS == 1 )
   ret |= ((int) xQueueRemoveFromSet & 0x04) == NULL;
   ret |= ((int) xQueueSelectFromSet & 0x04) == NULL;
   ret |= ((int) xQueueSelectFromSetFromISR & 0x04) == NULL;
+#endif
   ret |= ((int) xQueueSemaphoreTake & 0x04) == NULL;
   ret |= ((int) xQueueTakeMutexRecursive & 0x04) == NULL;
   return ret;
