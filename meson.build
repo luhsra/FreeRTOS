@@ -12,6 +12,7 @@ sources = files(
   'FreeRTOS' / 'Source' / 'stream_buffer.c',
   'FreeRTOS' / 'Source' / 'tasks.c',
   'FreeRTOS' / 'Source' / 'timers.c',
+  'FreeRTOS' / 'Source' / 'portable' / 'MemMang' / 'heap_1.c',
 )
 
 here = meson.current_source_dir()
